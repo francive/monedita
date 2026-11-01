@@ -89,7 +89,6 @@
             gap: 10px;
         }
 
-        /* Icono de la moneda en la esquina superior */
         .logo-icon-img {
             width: 38px;
             height: 38px;
@@ -124,7 +123,6 @@
         }
         .icon-btn:active { transform: scale(0.92); }
 
-        /* Animación del botón de donación */
         @keyframes softPulse {
             0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
             50% { transform: scale(1.06); box-shadow: 0 0 10px 3px rgba(239, 68, 68, 0.3); }
@@ -136,7 +134,6 @@
             border-color: rgba(239, 68, 68, 0.4);
         }
 
-        /* Tasa de Cambio Selector Bar */
         .rate-bar {
             background: var(--surface-card);
             border: 1px solid var(--border);
@@ -166,7 +163,6 @@
             font-weight: 700;
         }
 
-        /* Display Pantalla */
         .display-box {
             background: var(--surface-card);
             border: 1px solid var(--border);
@@ -217,7 +213,6 @@
         }
         .converted-pill:active { transform: scale(0.96); opacity: 0.8; }
 
-        /* Teclado Numérico */
         .keypad {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -246,7 +241,6 @@
         .k-btn.zero { grid-column: span 2; }
         .k-btn.equals { background: var(--accent); color: white; grid-row: span 2; border: none; font-size: 1.8rem; }
 
-        /* Modal genérico */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -300,7 +294,6 @@
         }
         .rate-option-item.active { border-color: var(--accent); background: var(--accent-glow); }
 
-        /* Toast de notificación */
         .toast {
             position: fixed;
             bottom: 30px;
@@ -337,7 +330,7 @@
         }
         .donate-btn:active { background: var(--border); }
 
-        /* Botón de instalación flotante */
+        /* Botón de instalación flotante visible siempre en móviles */
         #install-pwa-btn {
             position: fixed;
             bottom: 20px;
@@ -345,19 +338,23 @@
             background: var(--accent);
             color: white;
             border: none;
-            padding: 10px 18px;
+            padding: 12px 20px;
             border-radius: 30px;
             font-weight: 700;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             cursor: pointer;
             box-shadow: 0 10px 25px var(--accent-glow);
-            display: none;
+            display: none; /* Se activará vía script */
             align-items: center;
-            gap: 6px;
+            gap: 8px;
             z-index: 500;
             transition: transform 0.2s, opacity 0.2s;
         }
         #install-pwa-btn:active { transform: scale(0.95); opacity: 0.9; }
+
+        @media (max-width: 600px) {
+            #install-pwa-btn { display: flex; }
+        }
     </style>
 </head>
 <body>
@@ -426,6 +423,27 @@
 
     <!-- Botón flotante para instalar PWA -->
     <button id="install-pwa-btn">📲 Instalar App</button>
+
+    <!-- Modal de Guía de Instalación por si el navegador bloquea el evento automático -->
+    <div class="modal-overlay" id="install-guide-modal">
+        <div class="modal-sheet">
+            <div class="modal-header">
+                <h3>Instalar Monedita 📲</h3>
+                <button class="close-modal" id="close-install-guide">✕</button>
+            </div>
+            <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.5;">
+                Para tener la app directo en tu pantalla de inicio con acceso rápido:
+            </p>
+            <div style="background: var(--surface-card); padding: 14px; border-radius: 14px; font-size: 0.88rem; line-height: 1.6; border: 1px solid var(--border);">
+                1. Toca los **tres puntitos (⋮)** arriba a la derecha en tu navegador.<br>
+                2. Selecciona la opción **"Instalar aplicación"** o **"Agregar a la pantalla principal"**.<br>
+                3. ¡Listo! Se añadirá con el icono de la moneda.
+            </div>
+            <button class="donate-btn" style="background: var(--accent); color: white; border: none;" onclick="document.getElementById('install-guide-modal').classList.remove('active')">
+                ¡Entendido!
+            </button>
+        </div>
+    </div>
 
     <!-- Toast flotante para copiar -->
     <div id="toast" class="toast">¡Copiado al portapapeles!</div>
@@ -507,11 +525,13 @@
         // Modales
         const rateModal = document.getElementById('rate-modal');
         const infoModal = document.getElementById('info-modal');
+        const installGuideModal = document.getElementById('install-guide-modal');
 
         document.getElementById('open-rate-modal').onclick = () => rateModal.classList.add('active');
         document.getElementById('close-rate-modal').onclick = () => rateModal.classList.remove('active');
         document.getElementById('btn-info').onclick = () => infoModal.classList.add('active');
         document.getElementById('close-info-modal').onclick = () => infoModal.classList.remove('active');
+        document.getElementById('close-install-guide').onclick = () => installGuideModal.classList.remove('active');
 
         // --- LÓGICA DE APERTURA DIARIA (CADA 24 HORAS) ---
         function checkDailyDonationPrompt() {
@@ -660,7 +680,7 @@
             }
         }
 
-        // --- REGISTRO DEL SERVICE WORKER CON RUTA RELATIVA ---
+        // --- REGISTRO DEL SERVICE WORKER ---
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
@@ -669,23 +689,35 @@
             });
         }
 
-        // --- LÓGICA DE INSTALACIÓN PWA (BOTÓN FLOTANTE) ---
+        // --- LÓGICA DE INSTALACIÓN PWA MEJORADA ---
         let deferredPrompt;
         const installBtn = document.getElementById('install-pwa-btn');
+
+        // Siempre mostramos el botón en celulares para que el usuario pueda interactuar
+        window.addEventListener('DOMContentLoaded', () => {
+            installBtn.style.display = 'flex';
+        });
 
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            installBtn.style.display = 'flex';
         });
 
         installBtn.addEventListener('click', async () => {
-            if (!deferredPrompt) return;
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            console.log(`Respuesta de instalación: ${outcome}`);
-            deferredPrompt = null;
-            installBtn.style.display = 'none';
+            if (deferredPrompt) {
+                // Si el navegador ya aprobó el evento nativo, lo lanzamos directamente
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`Respuesta de instalación: ${outcome}`);
+                if (outcome === 'accepted') {
+                    installBtn.style.display = 'none';
+                }
+                deferredPrompt = null;
+            } else {
+                // Si el navegador aún no activa el evento nativo (restricción de Chrome),
+                // abrimos nuestra guía visual explicativa para asegurar que se instale sin fricción.
+                installGuideModal.classList.add('active');
+            }
         });
 
         window.addEventListener('appinstalled', (evt) => {
