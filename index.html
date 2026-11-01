@@ -119,6 +119,18 @@
         }
         .icon-btn:active { transform: scale(0.92); }
 
+        /* Animación de brillo/latido sutil para el botón de donación del corazón */
+        @keyframes softPulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            50% { transform: scale(1.06); box-shadow: 0 0 10px 3px rgba(239, 68, 68, 0.3); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .heart-btn {
+            animation: softPulse 3s infinite ease-in-out;
+            border-color: rgba(239, 68, 68, 0.4);
+        }
+
         /* Tasa de Cambio Selector Bar */
         .rate-bar {
             background: var(--surface-card);
@@ -149,7 +161,7 @@
             font-weight: 700;
         }
 
-        /* Display Pantalla con cursor indicador de clic */
+        /* Display Pantalla */
         .display-box {
             background: var(--surface-card);
             border: 1px solid var(--border);
@@ -335,7 +347,7 @@
             </div>
             <div class="header-actions">
                 <button class="icon-btn" id="btn-theme" title="Cambiar Tema">🌙</button>
-                <button class="icon-btn" id="btn-info" title="Ayuda / Apoyo">❤️</button>
+                <button class="icon-btn heart-btn" id="btn-info" title="Ayuda / Apoyo">❤️</button>
             </div>
         </div>
 
@@ -348,7 +360,7 @@
             <div class="rate-badge-pill">Cambiar ▾</div>
         </div>
 
-        <!-- Pantalla de Resultados (Con clic para copiar añadido) -->
+        <!-- Pantalla de Resultados -->
         <div class="display-box">
             <div class="expr-text" id="expression-view">0</div>
             <div class="main-amount" id="main-amount-box" onclick="copyMainAmount()" title="Toca para copiar">
@@ -471,12 +483,28 @@
         document.getElementById('btn-info').onclick = () => infoModal.classList.add('active');
         document.getElementById('close-info-modal').onclick = () => infoModal.classList.remove('active');
 
-        // Funciones de Copia Rápida para los montos en pantalla
+        // --- LÓGICA DE APERTURA DIARIA (CADA 24 HORAS) ---
+        function checkDailyDonationPrompt() {
+            const lastShownTime = localStorage.getItem('last_donation_prompt');
+            const now = new Date().getTime();
+            const twentyFourHours = 24 * 60 * 60 * 1000; // Milisegundos en 24 horas
+
+            // Si nunca se ha mostrado o han pasado más de 24 horas desde la última vez
+            if (!lastShownTime || (now - parseInt(lastShownTime)) > twentyFourHours) {
+                // Esperamos un pequeño toque de medio segundo para que la app cargue fluida y abra el modal
+                setTimeout(() => {
+                    infoModal.classList.add('active');
+                }, 600);
+                // Guardamos el nuevo timestamp actual
+                localStorage.setItem('last_donation_prompt', now.toString());
+            }
+        }
+
+        // Funciones de Copia Rápida
         function copyMainAmount() {
             const val = outputMain.textContent.trim();
             if (val === '0') return;
             const symbol = symbolMain.textContent.trim();
-            // Copia el número limpio o con símbolo según prefieras (aquí copiamos el número exacto)
             copyText(val, `¡Copiado: ${val} ${symbol !== 'Bs' ? symbol : ''}!`);
         }
 
@@ -486,7 +514,6 @@
             copyText(val, `¡Copiado: ${val}!`);
         }
 
-        // Función general para copiar al portapapeles con Toast
         function copyText(text, msg) {
             navigator.clipboard.writeText(text).then(() => {
                 showToast(msg);
@@ -608,7 +635,9 @@
             }
         }
 
+        // Ejecutar al iniciar
         fetchLiveRates();
+        checkDailyDonationPrompt();
     </script>
 </body>
 </html>
