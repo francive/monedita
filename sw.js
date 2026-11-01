@@ -7,6 +7,5 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Manejador básico requerido para PWA
   event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
 });
