@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0d1117">
+    <title>Monedita | Calculadora y Tasas Venezuela</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #090d16;
+            --surface: #111827;
+            --surface-card: #1f2937;
+            --border: #374151;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --accent: #10b981;
+            --accent-glow: rgba(16, 185, 129, 0.25);
+            --danger: #ef4444;
+            --key-bg: #1a2234;
+            --key-active: #2d3748;
+            --op-bg: #1e1b4b;
+            --op-text: #818cf8;
+        }
+
+        :root.light {
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --surface-card: #f1f5f9;
+            --border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --accent: #059669;
+            --accent-glow: rgba(5, 150, 105, 0.15);
+            --key-bg: #ffffff;
+            --key-active: #e2e8f0;
+            --op-bg: #ede9fe;
+            --op-text: #7c3aed;
+        }
+
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            -webkit-tap-highlight-color: transparent; 
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            background-color: var(--surface);
+            width: 100%;
+            max-width: 420px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        @media (min-width: 450px) {
+            .app-container { 
+                border-radius: 32px; 
+                height: 92vh; 
+                max-height: 820px; 
+                border: 1px solid var(--border); 
+            }
+        }
+
+        /* Encabezado */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--accent);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 800;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 12px var(--accent-glow);
+        }
+
+        .logo-text h1 { 
+            font-size: 1.1rem; 
+            font-weight: 700; 
+            letter-spacing: -0.5px; 
+        }
+
+        .logo-text span { 
+            font-size: 0.7rem; 
+            color: var(--text-muted); 
+            font-weight: 500; 
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.1s, background-color 0.2s;
+        }
+
+        .icon-btn:active { 
+            transform: scale(0.92); 
+        }
+
+        /* Barra de Tasa Seleccionada */
+        .rate-bar {
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 10px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .rate-bar:hover {
+            border-color: var(--accent);
+        }
+
+        .rate-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .rate-info .label { 
+            font-size: 0.7rem; 
+            color: var(--text-muted); 
+            font-weight: 700; 
+            text-transform: uppercase; 
+        }
+
+        .rate-info .value { 
+            font-size: 0.95rem; 
+            font-weight: 700; 
+            color: var(--accent); 
+        }
+
+        .rate-badge-pill {
+            background: var(--accent-glow);
+            color: var(--accent);
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        /* Pantalla de Cálculos */
+        .display-box {
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            justify-content: flex-end;
+            min-height: 130px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .expr-text {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            margin-bottom: 4px;
+            max-width: 100%;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        .main-amount {
+            font-size: 2.8rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+            color: var(--text-main);
+        }
+
+        .converted-pill {
+            margin-top: 6px;
+            background: var(--accent);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            box-shadow: 0 4px 15px var(--accent-glow);
+            transition: transform 0.1s;
+        }
+
+        /* Teclado de Botones */
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 10px;
+            flex-grow: 1;
+        }
+
+        .k-btn {
+            background: var(--key-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text-main);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.1s, transform 0.1s;
+        }
+
+        .k-btn:active { 
+            background: var(--key-active); 
+            transform: scale(0.95); 
+        }
+
+        .k-btn.op { 
+            background: var(--op-bg); 
+            color: var(--op-text); 
+            border-color: transparent; 
+        }
+
+        .k-btn.clear { 
+            color: var(--danger); 
+            background: rgba(239, 68, 68, 0.1); 
+        }
+
+        .k-btn.zero { 
+            grid-column: span 2; 
+        }
+
+        .k-btn.equals { 
+            background: var(--accent); 
+            color: white; 
+            grid-row: span 2; 
+            border: none; 
+            font-size: 1.8rem; 
+        }
+
+        /* Estilos de Modales */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active { 
+            opacity: 1; 
+            visibility: visible; 
+        }
+
+        .modal-sheet {
+            background: var(--surface);
+            width: 100%;
+            max-width: 420px;
+            border-radius: 28px 28px 0 0;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
+        }
+
+        .modal-overlay.active .modal-sheet { 
+            transform: translateY(0); 
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 { 
+            font-size: 1.1rem; 
+            font-weight: 700; 
+        }
+
+        .close-modal { 
+            background: none; 
+            border: none; 
+            color: var(--text-muted); 
+            font-size: 1.2rem; 
+            cursor: pointer; 
+        }
+
+        .rate-option-item {
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            padding: 14px;
+            border-radius: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .rate-option-item.active { 
+            border-color: var(--accent); 
+            background: var(--accent-glow); 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Encabezado Principal -->
+        <div class="app-header">
+            <div class="logo-area">
+                <div class="logo-icon">M</div>
+                <div class="logo-text">
+                    <h1>Monedita</h1>
+                    <span>Venezuela Multimoneda</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn" id="btn-theme" title="Cambiar Tema">🌙</button>
+                <button class="icon-btn" id="btn-info" title="Ayuda / Apoyo">❤️</button>
+            </div>
+        </div>
+
+        <!-- Selector de Tasa Activa -->
+        <div class="rate-bar" id="open-rate-modal">
+            <div class="rate-info">
+                <span class="label" id="active-rate-name">Dólar BCV Oficial</span>
+                <span class="value" id="active-rate-val">Cargando...</span>
+            </div>
+            <div class="rate-badge-pill">Cambiar ▾</div>
+        </div>
+
+        <!-- Pantalla de Resultados -->
+        <div class="display-box">
+            <div class="expr-text" id="expression-view">0</div>
+            <div class="main-amount">
+                <span id="symbol-main">$</span>
+                <span id="output-main">0</span>
+            </div>
+            <div class="converted-pill" id="output-converted">0,00 Bs</div>
+        </div>
+
+        <!-- Teclado Numérico -->
+        <div class="keypad">
+            <button class="k-btn clear" onclick="clearAll()">C</button>
+            <button class="k-btn op" onclick="switchMode()">⇄</button>
+            <button class="k-btn op" onclick="deleteChar()">⌫</button>
+            <button class="k-btn op" onclick="appendChar('/')">÷</button>
+
+            <button class="k-btn" onclick="appendChar('7')">7</button>
+            <button class="k-btn" onclick="appendChar('8')">8</button>
+            <button class="k-btn" onclick="appendChar('9')">9</button>
+            <button class="k-btn op" onclick="appendChar('*')">×</button>
+
+            <button class="k-btn" onclick="appendChar('4')">4</button>
+            <button class="k-btn" onclick="appendChar('5')">5</button>
+            <button class="k-btn" onclick="appendChar('6')">6</button>
+            <button class="k-btn op" onclick="appendChar('-')">−</button>
+
+            <button class="k-btn" onclick="appendChar('1')">1</button>
+            <button class="k-btn" onclick="appendChar('2')">2</button>
+            <button class="k-btn" onclick="appendChar('3')">3</button>
+            <button class="k-btn equals" onclick="appendChar('+')">+</button>
+
+            <button class="k-btn zero" onclick="appendChar('0')">0</button>
+            <button class="k-btn" onclick="appendChar('.')">.</button>
+        </div>
+    </div>
+
+    <!-- Modal de Selección de Tasas -->
+    <div class="modal-overlay" id="rate-modal">
+        <div class="modal-sheet">
+            <div class="modal-header">
+                <h3>Selecciona la Tasa de Referencia</h3>
+                <button class="close-modal" id="close-rate-modal">✕</button>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <div class="rate-option-item" id="opt-bcv" onclick="setRateType('bcv')">
+                    <span>🇻🇪 Dólar BCV Oficial</span>
+                    <span id="modal-val-bcv">...</span>
+                </div>
+                <div class="rate-option-item" id="opt-euro" onclick="setRateType('euro')">
+                    <span>🇪🇺 Euro BCV Oficial</span>
+                    <span id="modal-val-euro">...</span>
+                </div>
+                <div class="rate-option-item" id="opt-usdt" onclick="setRateType('usdt')">
+                    <span>💎 USDT (Binance P2P)</span>
+                    <span id="modal-val-usdt">...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Info / Apoyo -->
+    <div class="modal-overlay" id="info-modal">
+        <div class="modal-sheet">
+            <div class="modal-header">
+                <h3>Apoya a Monedita ❤️</h3>
+                <button class="close-modal" id="close-info-modal">✕</button>
+            </div>
+            <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.5;">
+                Monedita es 100% gratuita para facilitar tus operaciones diarias en Venezuela. Puedes apoyar su mantenimiento voluntario mediante los siguientes datos:
+            </p>
+            <div style="background: var(--surface-card); padding: 14px; border-radius: 12px; font-size: 0.85rem; line-height: 1.6; border: 1px solid var(--border);">
+                <strong>Pago Móvil (BDV):</strong> 0412-5718492<br>
+                <strong>Cédula:</strong> V-30969782<br>
+                <strong>Banco:</strong> Banco de Venezuela (0102)
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables de Estado Inicial
+        let expression = "";
+        let isUsdToBs = true;
+        let activeRateKey = 'bcv';
+        let rates = { 
+            bcv: parseFloat(localStorage.getItem('monedita_rate_bcv')) || 36.5, 
+            euro: parseFloat(localStorage.getItem('monedita_rate_euro')) || 39.2, 
+            usdt: parseFloat(localStorage.getItem('monedita_rate_usdt')) || 38.0 
+        };
+
+        // Referencias a Elementos DOM
+        const outputMain = document.getElementById('output-main');
+        const outputConverted = document.getElementById('output-converted');
+        const expressionView = document.getElementById('expression-view');
+        const activeRateName = document.getElementById('active-rate-name');
+        const activeRateVal = document.getElementById('active-rate-val');
+        const symbolMain = document.getElementById('symbol-main');
+
+        // Modales
+        const rateModal = document.getElementById('rate-modal');
+        const infoModal = document.getElementById('info-modal');
+
+        document.getElementById('open-rate-modal').onclick = () => rateModal.classList.add('active');
+        document.getElementById('close-rate-modal').onclick = () => rateModal.classList.remove('active');
+        document.getElementById('btn-info').onclick = () => infoModal.classList.add('active');
+        document.getElementById('close-info-modal').onclick = () => infoModal.classList.remove('active');
+
+        rateModal.onclick = (e) => { if(e.target === rateModal) rateModal.classList.remove('active'); };
+        infoModal.onclick = (e) => { if(e.target === infoModal) infoModal.classList.remove('active'); };
+
+        // Cambio y Persistencia de Tema
+        const btnTheme = document.getElementById('btn-theme');
+        btnTheme.onclick = () => {
+            document.documentElement.classList.toggle('light');
+            const isLight = document.documentElement.classList.contains('light');
+            btnTheme.textContent = isLight ? '☀️' : '🌙';
+            localStorage.setItem('monedita_theme', isLight ? 'light' : 'dark');
+        };
+
+        if(localStorage.getItem('monedita_theme') === 'light') {
+            document.documentElement.classList.add('light');
+            btnTheme.textContent = '☀️';
+        }
+
+       // Cargar Tasas Reales Automáticas con CriptoYa
+       async function fetchLiveRates() {
+            try {
+                // 1. Petición USDT Binance (CriptoYa)
+                let resUsdt = await fetch('https://criptoya.com/api/binancep2p/usdt/ves/1');
+                let dataUsdt = await resUsdt.json();
+                if(dataUsdt && dataUsdt.ask) {
+                    rates.usdt = dataUsdt.ask;
+                    localStorage.setItem('rate_usdt', rates.usdt);
+                }
+
+                // 2. Petición Dólar oficial BCV (CriptoYa tiene el monitor oficial)
+                let resBcv = await fetch('https://criptoya.com/api/bcv/ves/1');
+                let dataBcv = await resBcv.json();
+                if(dataBcv && dataBcv.price) {
+                    rates.bcv = dataBcv.price;
+                    localStorage.setItem('rate_bcv', rates.bcv);
+                }
+
+                // 3. Petición Euro oficial BCV (CriptoYa / o usamos una proporción segura si el endpoint varía)
+                let resEuro = await fetch('https://criptoya.com/api/bcv/eur/ves/1').catch(() => null);
+                if(resEuro && resEuro.ok) {
+                    let dataEuro = await resEuro.json();
+                    if(dataEuro && dataEuro.price) {
+                        rates.euro = dataEuro.price;
+                        localStorage.setItem('rate_euro', rates.euro);
+                    }
+                } else {
+                    // Si el endpoint específico del euro varía, estimamos o mantenemos el valor respaldado
+                    rates.euro = rates.bcv * 1.08; // Referencia aproximada estándar frente al BCV
+                }
+
+            } catch(e) {
+                console.error("Error conectando con CriptoYa, usando respaldo local", e);
+            }
+            updateRateDisplay();
+        }
+
+        function updateRateDisplay() {
+            document.getElementById('modal-val-bcv').textContent = rates.bcv.toFixed(2) + ' Bs';
+            document.getElementById('modal-val-euro').textContent = rates.euro.toFixed(2) + ' Bs';
+            document.getElementById('modal-val-usdt').textContent = rates.usdt.toFixed(2) + ' Bs';
+
+            const names = { bcv: 'Dólar BCV Oficial', euro: 'Euro BCV Oficial', usdt: 'USDT Binance P2P' };
+            activeRateName.textContent = names[activeRateKey];
+            activeRateVal.textContent = rates[activeRateKey].toFixed(2) + ' Bs';
+
+            document.querySelectorAll('.rate-option-item').forEach(el => el.classList.remove('active'));
+            const activeModalItem = document.getElementById(`opt-${activeRateKey}`);
+            if(activeModalItem) activeModalItem.classList.add('active');
+
+            calculate();
+        }
+
+        function setRateType(key) {
+            activeRateKey = key;
+            rateModal.classList.remove('active');
+            updateRateDisplay();
+        }
+
+        function switchMode() {
+            isUsdToBs = !isUsdToBs;
+            symbolMain.textContent = isUsdToBs ? (activeRateKey === 'euro' ? '€' : '$') : 'Bs';
+            calculate();
+        }
+
+        function appendChar(char) {
+            const isOp = /[+\-*/]/.test(char);
+            const lastChar = expression.slice(-1);
+            
+            if (expression === "" && isOp) return;
+            if (isOp && /[+\-*/]/.test(lastChar)) {
+                expression = expression.slice(0, -1) + char;
+                calculate();
+                return;
+            }
+
+            if (char === '.') {
+                const parts = expression.split(/[+\-*/]/);
+                if (parts[parts.length - 1].includes('.')) return;
+            }
+
+            expression += char;
+            calculate();
+        }
+
+        function deleteChar() {
+            expression = expression.slice(0, -1);
+            calculate();
+        }
+
+        function clearAll() {
+            expression = "";
+            calculate();
+        }
+
+        function safeEvaluate(exprStr) {
+            let clean = exprStr.replace(/[+\-*/.]+$/, '');
+            if (!clean) return 0;
+            try {
+                return Function(`'use strict'; return (${clean})`)() || 0;
+            } catch(e) {
+                return 0;
+            }
+        }
+
+        function calculate() {
+            expressionView.textContent = expression || '0';
+            let baseVal = safeEvaluate(expression);
+            let currentRate = rates[activeRateKey];
+
+            if (isUsdToBs) {
+                symbolMain.textContent = activeRateKey === 'euro' ? '€' : '$';
+                outputMain.textContent = new Intl.NumberFormat('es-VE', { maximumFractionDigits: 2 }).format(baseVal);
+                let converted = baseVal * currentRate;
+                outputConverted.textContent = new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(converted) + ' Bs';
+            } else {
+                symbolMain.textContent = 'Bs';
+                outputMain.textContent = new Intl.NumberFormat('es-VE', { maximumFractionDigits: 2 }).format(baseVal);
+                let converted = currentRate > 0 ? baseVal / currentRate : 0;
+                let symbolConv = activeRateKey === 'euro' ? '€' : '$';
+                outputConverted.textContent = symbolConv + ' ' + new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(converted);
+            }
+        }
+
+        // Teclado físico
+        document.addEventListener('keydown', (e) => {
+            if (e.key >= '0' && e.key <= '9') appendChar(e.key);
+            else if (e.key === '.' || e.key === ',') appendChar('.');
+            else if (e.key === '+') appendChar('+');
+            else if (e.key === '-') appendChar('-');
+            else if (e.key === '*') appendChar('*');
+            else if (e.key === '/') { e.preventDefault(); appendChar('/'); }
+            else if (e.key === 'Backspace') deleteChar();
+            else if (e.key === 'Escape' || e.key === 'Delete') clearAll();
+        });
+
+        fetchLiveRates();
+    </script>
+</body>
+</html>
