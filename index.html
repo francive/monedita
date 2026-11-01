@@ -330,7 +330,7 @@
         }
         .donate-btn:active { background: var(--border); }
 
-        /* Botón de instalación flotante visible siempre en móviles */
+        /* Botón de instalación flotante (oculto por defecto hasta que Chrome lo autorice) */
         #install-pwa-btn {
             position: fixed;
             bottom: 20px;
@@ -344,17 +344,13 @@
             font-size: 0.9rem;
             cursor: pointer;
             box-shadow: 0 10px 25px var(--accent-glow);
-            display: none; /* Se activará vía script */
+            display: none; 
             align-items: center;
             gap: 8px;
             z-index: 500;
             transition: transform 0.2s, opacity 0.2s;
         }
         #install-pwa-btn:active { transform: scale(0.95); opacity: 0.9; }
-
-        @media (max-width: 600px) {
-            #install-pwa-btn { display: flex; }
-        }
     </style>
 </head>
 <body>
@@ -421,29 +417,8 @@
         </div>
     </div>
 
-    <!-- Botón flotante para instalar PWA -->
+    <!-- Botón flotante para instalar PWA (Directo sin instrucciones) -->
     <button id="install-pwa-btn">📲 Instalar App</button>
-
-    <!-- Modal de Guía de Instalación por si el navegador bloquea el evento automático -->
-    <div class="modal-overlay" id="install-guide-modal">
-        <div class="modal-sheet">
-            <div class="modal-header">
-                <h3>Instalar Monedita 📲</h3>
-                <button class="close-modal" id="close-install-guide">✕</button>
-            </div>
-            <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.5;">
-                Para tener la app directo en tu pantalla de inicio con acceso rápido:
-            </p>
-            <div style="background: var(--surface-card); padding: 14px; border-radius: 14px; font-size: 0.88rem; line-height: 1.6; border: 1px solid var(--border);">
-                1. Toca los **tres puntitos (⋮)** arriba a la derecha en tu navegador.<br>
-                2. Selecciona la opción **"Instalar aplicación"** o **"Agregar a la pantalla principal"**.<br>
-                3. ¡Listo! Se añadirá con el icono de la moneda.
-            </div>
-            <button class="donate-btn" style="background: var(--accent); color: white; border: none;" onclick="document.getElementById('install-guide-modal').classList.remove('active')">
-                ¡Entendido!
-            </button>
-        </div>
-    </div>
 
     <!-- Toast flotante para copiar -->
     <div id="toast" class="toast">¡Copiado al portapapeles!</div>
@@ -525,13 +500,11 @@
         // Modales
         const rateModal = document.getElementById('rate-modal');
         const infoModal = document.getElementById('info-modal');
-        const installGuideModal = document.getElementById('install-guide-modal');
 
         document.getElementById('open-rate-modal').onclick = () => rateModal.classList.add('active');
         document.getElementById('close-rate-modal').onclick = () => rateModal.classList.remove('active');
         document.getElementById('btn-info').onclick = () => infoModal.classList.add('active');
         document.getElementById('close-info-modal').onclick = () => infoModal.classList.remove('active');
-        document.getElementById('close-install-guide').onclick = () => installGuideModal.classList.remove('active');
 
         // --- LÓGICA DE APERTURA DIARIA (CADA 24 HORAS) ---
         function checkDailyDonationPrompt() {
@@ -689,35 +662,29 @@
             });
         }
 
-        // --- LÓGICA DE INSTALACIÓN PWA MEJORADA ---
+        // --- LÓGICA DE INSTALACIÓN DIRECTA NATIVA PWA ---
         let deferredPrompt;
         const installBtn = document.getElementById('install-pwa-btn');
 
-        // Siempre mostramos el botón en celulares para que el usuario pueda interactuar
-        window.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Evita el aviso automático feo del navegador
+            e.preventDefault();
+            // Guarda el evento para dispararlo con nuestro botón
+            deferredPrompt = e;
+            // Muestra nuestro botón flotante de instalación directa
             installBtn.style.display = 'flex';
         });
 
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-        });
-
         installBtn.addEventListener('click', async () => {
-            if (deferredPrompt) {
-                // Si el navegador ya aprobó el evento nativo, lo lanzamos directamente
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                console.log(`Respuesta de instalación: ${outcome}`);
-                if (outcome === 'accepted') {
-                    installBtn.style.display = 'none';
-                }
-                deferredPrompt = null;
-            } else {
-                // Si el navegador aún no activa el evento nativo (restricción de Chrome),
-                // abrimos nuestra guía visual explicativa para asegurar que se instale sin fricción.
-                installGuideModal.classList.add('active');
+            if (!deferredPrompt) return;
+            // Dispara directamente el cuadro de instalación nativo de Android/Chrome
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`Respuesta de instalación: ${outcome}`);
+            if (outcome === 'accepted') {
+                installBtn.style.display = 'none';
             }
+            deferredPrompt = null;
         });
 
         window.addEventListener('appinstalled', (evt) => {
