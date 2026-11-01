@@ -250,6 +250,8 @@
             gap: 16px;
             transform: translateY(100%);
             transition: transform 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
+            max-height: 85vh;
+            overflow-y: auto;
         }
         .modal-overlay.active .modal-sheet { transform: translateY(0); }
 
@@ -274,6 +276,42 @@
             font-size: 0.95rem;
         }
         .rate-option-item.active { border-color: var(--accent); background: var(--accent-glow); }
+
+        /* Toast de notificación de copia */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--text-main);
+            color: var(--bg);
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 2000;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            pointer-events: none;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+
+        .donate-btn {
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 12px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: background 0.1s;
+        }
+        .donate-btn:active { background: var(--border); }
     </style>
 </head>
 <body>
@@ -340,6 +378,9 @@
         </div>
     </div>
 
+    <!-- Toast flotante para copiar -->
+    <div id="toast" class="toast">¡Copiado al portapapeles!</div>
+
     <!-- Modal de Selección de Tasas -->
     <div class="modal-overlay" id="rate-modal">
         <div class="modal-sheet">
@@ -372,12 +413,26 @@
                 <button class="close-modal" id="close-info-modal">✕</button>
             </div>
             <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.5;">
-                Esta herramienta es 100% gratuita para facilitar las cuentas del día a día en Venezuela. Si te es útil, puedes colaborar con el mantenimiento voluntario vía Pago Móvil o PayPal.
+                Monedita es una herramienta 100% gratuita para facilitar las cuentas del día a día en Venezuela. Si te resulta útil y deseas colaborar con su mantenimiento, puedes hacerlo por los siguientes medios:
             </p>
-            <div style="background: var(--surface-card); padding: 12px; border-radius: 12px; font-size: 0.85rem; line-height: 1.6;">
-                <strong>Pago Móvil (BDV):</strong> 0412-5718492<br>
-                <strong>Cédula:</strong> V-30969782
+            
+            <div style="background: var(--surface-card); padding: 14px; border-radius: 14px; font-size: 0.88rem; line-height: 1.6; border: 1px solid var(--border);">
+                <strong style="color: var(--accent);">📱 Pago Móvil (BDV)</strong><br>
+                <span>Banco: 0102 - Venezuela</span><br>
+                <span>Teléfono: 04227134389</span><br>
+                <span>Cédula: 32.197.245</span>
             </div>
+            <button class="donate-btn" onclick="copyText('04227134389', '¡Datos de Pago Móvil copiados!')">
+                📋 Copiar Datos de Pago Móvil
+            </button>
+
+            <div style="background: var(--surface-card); padding: 14px; border-radius: 14px; font-size: 0.88rem; line-height: 1.6; border: 1px solid var(--border); margin-top: 4px;">
+                <strong style="color: var(--accent);">🌍 PayPal</strong><br>
+                <span style="word-break: break-all;">josecorderofinanzas@gmail.com</span>
+            </div>
+            <button class="donate-btn" onclick="copyText('josecorderofinanzas@gmail.com', '¡Correo de PayPal copiado!')">
+                📋 Copiar Correo PayPal
+            </button>
         </div>
     </div>
 
@@ -409,6 +464,24 @@
         document.getElementById('btn-info').onclick = () => infoModal.classList.add('active');
         document.getElementById('close-info-modal').onclick = () => infoModal.classList.remove('active');
 
+        // Función para copiar al portapapeles con Toast
+        function copyText(text, msg) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast(msg);
+            }).catch(err => {
+                console.error('Error al copiar: ', err);
+            });
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+
         // Tema Oscuro / Claro
         const btnTheme = document.getElementById('btn-theme');
         btnTheme.onclick = () => {
@@ -422,7 +495,7 @@
             btnTheme.textContent = '☀️';
         }
 
-       // Cargar Tasas Reales Automáticas con bcv.today y CriptoYa
+        // Cargar Tasas Reales Automáticas con bcv.today y CriptoYa
         async function fetchLiveRates() {
             try {
                 // 1. Petición Dólar y Euro BCV desde bcv.today
@@ -443,7 +516,6 @@
                 let resCripto = await fetch('https://criptoya.com/api/binancep2p/usdt/ves/1');
                 let dataCripto = await resCripto.json();
                 if(dataCripto && dataCripto.ask) {
-                    // Tomamos el valor exacto de la API sin alterarlo
                     rates.usdt = parseFloat(dataCripto.ask);
                     localStorage.setItem('rate_usdt', rates.usdt);
                 }
@@ -454,7 +526,6 @@
         }
 
         function updateRateDisplay() {
-            // Forzamos siempre la visualización exacta con 2 decimales en la interfaz
             document.getElementById('modal-val-bcv').textContent = rates.bcv.toFixed(2) + ' Bs';
             document.getElementById('modal-val-euro').textContent = rates.euro.toFixed(2) + ' Bs';
             document.getElementById('modal-val-usdt').textContent = rates.usdt.toFixed(2) + ' Bs';
