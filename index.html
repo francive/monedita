@@ -310,6 +310,7 @@
             justify-content: center;
             gap: 8px;
             transition: background 0.1s;
+            text-decoration: none;
         }
         .donate-btn:active { background: var(--border); }
     </style>
@@ -428,11 +429,12 @@
 
             <div style="background: var(--surface-card); padding: 14px; border-radius: 14px; font-size: 0.88rem; line-height: 1.6; border: 1px solid var(--border); margin-top: 4px;">
                 <strong style="color: var(--accent);">🌍 PayPal</strong><br>
-                <span style="word-break: break-all;">josecorderofinanzas@gmail.com</span>
+                <span>Donaciones vía enlace rápido de soporte</span>
             </div>
-            <button class="donate-btn" onclick="copyText('josecorderofinanzas@gmail.com', '¡Correo de PayPal copiado!')">
-                📋 Copiar Correo PayPal
-            </button>
+            <!-- Cambia 'soporteapp' por el nombre que le pongas a tu enlace de PayPal.Me -->
+            <a href="https://paypal.me/soporteapp" target="_blank" rel="noopener noreferrer" class="donate-btn" style="background: var(--accent); color: white; border: none;">
+                🌐 Donar por PayPal.me
+            </a>
         </div>
     </div>
 
@@ -498,7 +500,7 @@
         // Cargar Tasas Reales Automáticas con bcv.today y CriptoYa
         async function fetchLiveRates() {
             try {
-                // 1. Petición Dólar y Euro BCV desde bcv.today
+                // 1. Petición Dólar y Euro BCV desde bcv.today[cite: 13]
                 let resBcv = await fetch('https://bcv.today/api/v1/rate.json', { cache: 'no-cache' });
                 if (resBcv.ok) {
                     let dataBcv = await resBcv.json();
@@ -512,7 +514,7 @@
                     }
                 }
 
-                // 2. Petición USDT Binance (CriptoYa)
+                // 2. Petición USDT Binance (CriptoYa)[cite: 4]
                 let resCripto = await fetch('https://criptoya.com/api/binancep2p/usdt/ves/1');
                 let dataCripto = await resCripto.json();
                 if(dataCripto && dataCripto.ask) {
