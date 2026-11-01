@@ -149,7 +149,7 @@
             font-weight: 700;
         }
 
-        /* Display Pantalla */
+        /* Display Pantalla con cursor indicador de clic */
         .display-box {
             background: var(--surface-card);
             border: 1px solid var(--border);
@@ -181,7 +181,10 @@
             align-items: baseline;
             gap: 6px;
             color: var(--text-main);
+            cursor: pointer;
+            transition: opacity 0.15s;
         }
+        .main-amount:active { opacity: 0.7; }
 
         .converted-pill {
             margin-top: 6px;
@@ -192,7 +195,10 @@
             font-size: 1.1rem;
             font-weight: 700;
             box-shadow: 0 4px 15px var(--accent-glow);
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.15s;
         }
+        .converted-pill:active { transform: scale(0.96); opacity: 0.8; }
 
         /* Teclado Numérico */
         .keypad {
@@ -342,14 +348,14 @@
             <div class="rate-badge-pill">Cambiar ▾</div>
         </div>
 
-        <!-- Pantalla de Resultados -->
+        <!-- Pantalla de Resultados (Con clic para copiar añadido) -->
         <div class="display-box">
             <div class="expr-text" id="expression-view">0</div>
-            <div class="main-amount">
+            <div class="main-amount" id="main-amount-box" onclick="copyMainAmount()" title="Toca para copiar">
                 <span id="symbol-main">$</span>
                 <span id="output-main">0</span>
             </div>
-            <div class="converted-pill" id="output-converted">0,00 Bs</div>
+            <div class="converted-pill" id="output-converted" onclick="copyVesAmount()" title="Toca para copiar">0,00 Bs</div>
         </div>
 
         <!-- Teclado -->
@@ -465,7 +471,22 @@
         document.getElementById('btn-info').onclick = () => infoModal.classList.add('active');
         document.getElementById('close-info-modal').onclick = () => infoModal.classList.remove('active');
 
-        // Función para copiar al portapapeles con Toast
+        // Funciones de Copia Rápida para los montos en pantalla
+        function copyMainAmount() {
+            const val = outputMain.textContent.trim();
+            if (val === '0') return;
+            const symbol = symbolMain.textContent.trim();
+            // Copia el número limpio o con símbolo según prefieras (aquí copiamos el número exacto)
+            copyText(val, `¡Copiado: ${val} ${symbol !== 'Bs' ? symbol : ''}!`);
+        }
+
+        function copyVesAmount() {
+            const val = outputConverted.textContent.trim();
+            if (val.startsWith('0,00')) return;
+            copyText(val, `¡Copiado: ${val}!`);
+        }
+
+        // Función general para copiar al portapapeles con Toast
         function copyText(text, msg) {
             navigator.clipboard.writeText(text).then(() => {
                 showToast(msg);
