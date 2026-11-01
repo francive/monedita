@@ -422,48 +422,48 @@
             btnTheme.textContent = '☀️';
         }
 
-        // Cargar Tasas Reales Automáticas
-async function fetchLiveRates() {
-    try {
-        // 1. Petición Dólar y Euro BCV desde bcv.today
-        let resBcv = await fetch('https://bcv.today/api/v1/rate.json', { cache: 'no-cache' });
-        if (resBcv.ok) {
-            let dataBcv = await resBcv.json();
-            if (dataBcv.USD) {
-                rates.bcv = parseFloat(dataBcv.USD);
-                localStorage.setItem('rate_bcv', rates.bcv);
+       // Cargar Tasas Reales Automáticas con bcv.today y CriptoYa
+        async function fetchLiveRates() {
+            try {
+                // 1. Petición Dólar y Euro BCV desde bcv.today
+                let resBcv = await fetch('https://bcv.today/api/v1/rate.json', { cache: 'no-cache' });
+                if (resBcv.ok) {
+                    let dataBcv = await resBcv.json();
+                    if (dataBcv.USD) {
+                        rates.bcv = parseFloat(dataBcv.USD);
+                        localStorage.setItem('rate_bcv', rates.bcv);
+                    }
+                    if (dataBcv.EUR) {
+                        rates.euro = parseFloat(dataBcv.EUR);
+                        localStorage.setItem('rate_euro', rates.euro);
+                    }
+                }
+
+                // 2. Petición USDT Binance (CriptoYa)
+                let resCripto = await fetch('https://criptoya.com/api/binancep2p/usdt/ves/1');
+                let dataCripto = await resCripto.json();
+                if(dataCripto && dataCripto.ask) {
+                    // Tomamos el valor exacto de la API sin alterarlo
+                    rates.usdt = parseFloat(dataCripto.ask);
+                    localStorage.setItem('rate_usdt', rates.usdt);
+                }
+            } catch(e) {
+                console.error("Error conectando con las APIs, usando respaldo local", e);
             }
-            if (dataBcv.EUR) {
-                rates.euro = parseFloat(dataBcv.EUR);
-                localStorage.setItem('rate_euro', rates.euro);
-            }
+            updateRateDisplay();
         }
 
-        // 2. Petición USDT Binance (CriptoYa)
-        let resCripto = await fetch('https://criptoya.com/api/binancep2p/usdt/ves/1');
-        let dataCripto = await resCripto.json();
-        if(dataCripto && dataCripto.ask) {
-            // Guardamos explícitamente el valor decimal exacto que devuelve la API (ej: 983.14)
-            rates.usdt = parseFloat(dataCripto.ask);
-            localStorage.setItem('rate_usdt', rates.usdt);
+        function updateRateDisplay() {
+            // Forzamos siempre la visualización exacta con 2 decimales en la interfaz
+            document.getElementById('modal-val-bcv').textContent = rates.bcv.toFixed(2) + ' Bs';
+            document.getElementById('modal-val-euro').textContent = rates.euro.toFixed(2) + ' Bs';
+            document.getElementById('modal-val-usdt').textContent = rates.usdt.toFixed(2) + ' Bs';
+
+            const names = { bcv: 'Dólar BCV Oficial', euro: 'Euro BCV Oficial', usdt: 'USDT Binance P2P' };
+            activeRateName.textContent = names[activeRateKey];
+            activeRateVal.textContent = rates[activeRateKey].toFixed(2) + ' Bs';
+            calculate();
         }
-    } catch(e) {
-        console.error("Error conectando con las APIs, usando respaldo local", e);
-    }
-    updateRateDisplay();
-}
-
-function updateRateDisplay() {
-    // toFixed(2) garantiza que siempre muestre 2 decimales (ej: 983.14 Bs)
-    document.getElementById('modal-val-bcv').textContent = rates.bcv.toFixed(2) + ' Bs';
-    document.getElementById('modal-val-euro').textContent = rates.euro.toFixed(2) + ' Bs';
-    document.getElementById('modal-val-usdt').textContent = rates.usdt.toFixed(2) + ' Bs';
-
-    const names = { bcv: 'Dólar BCV Oficial', euro: 'Euro BCV Oficial', usdt: 'USDT Binance P2P' };
-    activeRateName.textContent = names[activeRateKey];
-    activeRateVal.textContent = rates[activeRateKey].toFixed(2) + ' Bs';
-    calculate();
-}
 
         function setRateType(key) {
             activeRateKey = key;
