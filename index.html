@@ -570,43 +570,53 @@
         }
 
         // Cargar Tasas Reales Automáticas con bcv.today y CriptoYa
-        async function fetchLiveRates() {
-            try {
-                let resBcv = await fetch('https://bcv.today/api/v1/rate.json', { cache: 'no-cache' });
-                if (resBcv.ok) {
-                    let dataBcv = await resBcv.json();
-                    if (dataBcv.USD) {
-                        rates.bcv = parseFloat(dataBcv.USD);
-                        localStorage.setItem('rate_bcv', rates.bcv);
-                    }
-                    if (dataBcv.EUR) {
-                        rates.euro = parseFloat(dataBcv.EUR);
-                        localStorage.setItem('rate_euro', rates.euro);
-                    }
-                }
-
-                let resCripto = await fetch('https://criptoya.com/api/binancep2p/usdt/ves/1');
-                let dataCripto = await resCripto.json();
-                if(dataCripto && dataCripto.ask) {
-                    rates.usdt = parseFloat(dataCripto.ask);
-                    localStorage.setItem('rate_usdt', rates.usdt);
-                }
-            } catch(e) {
-                console.error("Error conectando con las APIs, usando respaldo local", e);
+       async function fetchLiveRates() {
+    try {
+        // 1. Obtener Dólar oficial de DolarApi
+        let resDolar = await fetch('https://ve.dolarapi.com/v1/dolares', { cache: 'no-cache' });
+        if (resDolar.ok) {
+            let dataDolar = await resDolar.json();
+            let bcvDolar = dataDolar.find(item => item.fuente === 'bcv');
+            if (bcvDolar && bcvDolar.promedio) {
+                rates.bcv = parseFloat(bcvDolar.promedio);
+                localStorage.setItem('rate_bcv', rates.bcv);
             }
-            updateRateDisplay();
         }
 
-        function updateRateDisplay() {
-            document.getElementById('modal-val-bcv').textContent = rates.bcv.toFixed(2) + ' Bs';
-            document.getElementById('modal-val-euro').textContent = rates.euro.toFixed(2) + ' Bs';
-            document.getElementById('modal-val-usdt').textContent = rates.usdt.toFixed(2) + ' Bs';
-
-            const names = { bcv: 'Dólar BCV Oficial', euro: 'Euro BCV Oficial', usdt: 'USDT Binance P2P' };
-            activeRateName.textContent = names[activeRateKey];
-            activeRateVal.textContent = rates[activeRateKey].toFixed(2) + ' Bs';
-            calculate();
+        // 2. Obtener Euro oficial de DolarApi
+        let resEuro = await fetch('https://ve.dolarapi.com/v1/euros', { cache: 'no-cache' });
+        if (resEuro.ok) {
+            let dataEuro = await resEuro.json();
+            let bcvEuro = dataEuro.find(item => item.fuente === 'bcv');
+            if (bcvEuro && bcvEuro.promedio) {
+                rates.euro = parseFloat(bcvEuro.promedio);
+                localStorage.setItem('rate_euro', rates.euro);
+            }
         }
+
+        // 3. Mantienes tu USDT de CriptoYa intacto
+        let resCripto = await fetch('https://criptoya.com/api/binancep2p/usdt/ves/1');
+        let dataCripto = await resCripto.json();
+        if(dataCripto && dataCripto.ask) {
+            rates.usdt = parseFloat(dataCripto.ask);
+            localStorage.setItem('rate_usdt', rates.usdt);
+        }
+    } catch(e) {
+        console.error("Error conectando con las APIs, usando respaldo local", e);
+    }
+    updateRateDisplay();
+}
+
+function updateRateDisplay() {
+    document.getElementById('modal-val-bcv').textContent = rates.bcv.toFixed(2) + ' Bs';
+    document.getElementById('modal-val-euro').textContent = rates.euro.toFixed(2) + ' Bs';
+    document.getElementById('modal-val-usdt').textContent = rates.usdt.toFixed(2) + ' Bs';
+
+    const names = { bcv: 'Dólar BCV Oficial', euro: 'Euro BCV Oficial', usdt: 'USDT Binance P2P' };
+    activeRateName.textContent = names[activeRateKey];
+    activeRateVal.textContent = rates[activeRateKey].toFixed(2) + ' Bs';
+    calculate();
+}
 
         function setRateType(key) {
             activeRateKey = key;
