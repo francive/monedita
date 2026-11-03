@@ -1,1 +1,9 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.francidev.monedita",
+        "sha256_cert_fingerprints": ["DD:35:49:AA:2F:FB:15:85:38:00:1D:F9:12:B4:0C:8B:31:38:36:97:BE:B8:DD:28:AA:86:8E:9C:AD:48:82:CB"]
+      }
+    }]
 
