@@ -6,15 +6,16 @@
     <meta name="theme-color" content="#0d1117">
     <title>Monedita | Calculadora y Tasas Venezuela</title>
     
-    <!-- Meta y compatibilidad exclusiva para iOS / iPhone -->
+    <!-- Meta y compatibilidad exclusiva para iOS / iPhone (Corregido para el icono) -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Monedita">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="./android-chrome-192x192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="apple-touch-icon" href="android-chrome-192x192.png">
 
     <!-- Vinculación del archivo manifest e icono principal -->
     <link rel="manifest" href="./manifest.json">
-    <link rel="icon" type="image/png" sizes="192x192" href="./android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="android-chrome-192x192.png">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -469,7 +470,8 @@
                 <span>Teléfono: 04227134389</span><br>
                 <span>Cédula: 32.197.245</span>
             </div>
-            <button class="donate-btn" onclick="copyText('32197245 0102 04227134389', '¡Datos de Pago Móvil copiados!')">
+            <!-- Botón de copia múltiple para Pago Móvil -->
+            <button class="donate-btn" onclick="copyText('Banco: 0102 - Venezuela\nTeléfono: 04227134389\nCédula: 32.197.245', '¡Datos de Pago Móvil copiados!')">
                 📋 Copiar Datos de Pago Móvil
             </button>
 
@@ -569,55 +571,54 @@
             btnTheme.textContent = '☀️';
         }
 
-        // Cargar Tasas Reales Automáticas con bcv.today y CriptoYa
-      async function fetchLiveRates() {
-    try {
-        // 1. Obtener Dólar oficial de DolarApi
-        let resDolar = await fetch('https://ve.dolarapi.com/v1/dolares', { cache: 'no-cache' });
-        if (resDolar.ok) {
-            let dataDolar = await resDolar.json();
-            let bcvDolar = dataDolar.find(item => item.fuente === 'oficial');
-            if (bcvDolar && bcvDolar.promedio) {
-                rates.bcv = parseFloat(bcvDolar.promedio);
-                localStorage.setItem('rate_bcv', rates.bcv);
+        // --- CARGAR TASAS REALES CON DOLARAPI (FUENTE OFICIAL BCV) ---
+        async function fetchLiveRates() {
+            try {
+                // 1. Dólar Oficial BCV (DolarApi)
+                let resDolar = await fetch('https://ve.dolarapi.com/v1/dolares', { cache: 'no-cache' });
+                if (resDolar.ok) {
+                    let dataDolar = await resDolar.json();
+                    let bcvDolar = dataDolar.find(item => item.fuente === 'oficial');
+                    if (bcvDolar && bcvDolar.promedio) {
+                        rates.bcv = parseFloat(bcvDolar.promedio);
+                        localStorage.setItem('rate_bcv', rates.bcv);
+                    }
+                }
+
+                // 2. Euro Oficial BCV (DolarApi)
+                let resEuro = await fetch('https://ve.dolarapi.com/v1/euros', { cache: 'no-cache' });
+                if (resEuro.ok) {
+                    let dataEuro = await resEuro.json();
+                    let bcvEuro = dataEuro.find(item => item.fuente === 'oficial');
+                    if (bcvEuro && bcvEuro.promedio) {
+                        rates.euro = parseFloat(bcvEuro.promedio);
+                        localStorage.setItem('rate_euro', rates.euro);
+                    }
+                }
+
+                // 3. USDT Binance P2P (CriptoYa)
+                let resCripto = await fetch('https://criptoya.com/api/binancep2p/usdt/ves/1');
+                let dataCripto = await resCripto.json();
+                if(dataCripto && dataCripto.ask) {
+                    rates.usdt = parseFloat(dataCripto.ask);
+                    localStorage.setItem('rate_usdt', rates.usdt);
+                }
+            } catch(e) {
+                console.error("Error conectando con las APIs, usando respaldo local", e);
             }
+            updateRateDisplay();
         }
 
-        // 2. Obtener Euro oficial de DolarApi
-        let resEuro = await fetch('https://ve.dolarapi.com/v1/euros', { cache: 'no-cache' });
-        if (resEuro.ok) {
-            let dataEuro = await resEuro.json();
-            let bcvEuro = dataEuro.find(item => item.fuente === 'oficial');
-            if (bcvEuro && bcvEuro.promedio) {
-                rates.euro = parseFloat(bcvEuro.promedio);
-                localStorage.setItem('rate_euro', rates.euro);
-            }
-        }
+        function updateRateDisplay() {
+            document.getElementById('modal-val-bcv').textContent = rates.bcv.toFixed(2) + ' Bs';
+            document.getElementById('modal-val-euro').textContent = rates.euro.toFixed(2) + ' Bs';
+            document.getElementById('modal-val-usdt').textContent = rates.usdt.toFixed(2) + ' Bs';
 
-        // 3. USDT Binance P2P vía CriptoYa
-        let resCripto = await fetch('https://criptoya.com/api/binancep2p/usdt/ves/1');
-        if (resCripto.ok) {
-            let dataCripto = await resCripto.json();
-            if (dataCripto && dataCripto.ask) {
-                rates.usdt = parseFloat(dataCripto.ask);
-                localStorage.setItem('rate_usdt', rates.usdt);
-            }
+            const names = { bcv: 'Dólar BCV Oficial', euro: 'Euro BCV Oficial', usdt: 'USDT Binance P2P' };
+            activeRateName.textContent = names[activeRateKey];
+            activeRateVal.textContent = rates[activeRateKey].toFixed(2) + ' Bs';
+            calculate();
         }
-    } catch(e) {
-        console.error("Error conectando con las APIs:", e);
-    }
-    updateRateDisplay();
-}
-function updateRateDisplay() {
-    document.getElementById('modal-val-bcv').textContent = rates.bcv.toFixed(2) + ' Bs';
-    document.getElementById('modal-val-euro').textContent = rates.euro.toFixed(2) + ' Bs';
-    document.getElementById('modal-val-usdt').textContent = rates.usdt.toFixed(2) + ' Bs';
-
-    const names = { bcv: 'Dólar BCV Oficial', euro: 'Euro BCV Oficial', usdt: 'USDT Binance P2P' };
-    activeRateName.textContent = names[activeRateKey];
-    activeRateVal.textContent = rates[activeRateKey].toFixed(2) + ' Bs';
-    calculate();
-}
 
         function setRateType(key) {
             activeRateKey = key;
@@ -685,7 +686,7 @@ function updateRateDisplay() {
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            installBtn.style.display = 'flex'; // Muestra el botón solo cuando el navegador autoriza la instalación real
+            installBtn.style.display = 'flex'; 
         });
 
         installBtn.addEventListener('click', async () => {
