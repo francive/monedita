@@ -572,69 +572,63 @@
         }
 
         // --- CARGAR TASAS REALES CON DOLARAPI (FUENTE OFICIAL BCV) ---
-       async function fetchLiveRates() {
+     async function fetchRates() {
     try {
-        // 1. Dólar Oficial BCV (DolarApi)
-        let resDolar = await fetch('https://ve.dolarapi.com/v1/dolares', { cache: 'no-cache' });
-        if (resDolar.ok) {
-            let dataDolar = await resDolar.json();
-            let bcvDolar = dataDolar.find(item => item.fuente === 'oficial');
-            if (bcvDolar && bcvDolar.promedio) {
-                // Nos aseguramos de limpiar y parsear bien cualquier formato de texto/número
-                let valDolar = typeof bcvDolar.promedio === 'string' 
-                    ? parseFloat(bcvDolar.promedio.replace(',', '.')) 
-                    : bcvDolar.promedio;
-                
-                if (!isNaN(valDolar) && valDolar > 0) {
-                    rates.bcv = valDolar;
-                    localStorage.setItem('rate_bcv', rates.bcv);
-                }
-            }
-        }
-
-        // 2. Euro Oficial BCV (DolarApi con validación de seguridad para evitar el error de 1.00)
-        let resEuro = await fetch('https://ve.dolarapi.com/v1/euros', { cache: 'no-cache' });
-        let euroValido = false;
+        // Consumimos la API oficial y gratuita de BCV Today
+        const res = await fetch("https://bcv.today/api/v1/rate.json", {
+            cache: "no-cache",
+        });
         
-        if (resEuro.ok) {
-            let dataEuro = await resEuro.json();
-            let bcvEuro = dataEuro.find(item => item.fuente === 'oficial');
-            if (bcvEuro && bcvEuro.promedio) {
-                let valEuro = typeof bcvEuro.promedio === 'string' 
-                    ? parseFloat(bcvEuro.promedio.replace(',', '.')) 
-                    : bcvEuro.promedio;
-                }
+        if (res.ok) {
+            const data = await res.json();
+            
+            // Asignamos el Dólar BCV oficial de forma limpia
+            if (data && data.USD > 0) {
+                rates.bcv_hoy = parseFloat(data.USD);
+                localStorage.setItem('rate_bcv_hoy', rates.bcv_hoy);
+            }
+            
+            // Asignamos el Euro BCV oficial directamente sin errores de miles
+            if (data && data.EUR > 0) {
+                rates.euro_bcv = parseFloat(data.EUR);
+                localStorage.setItem('rate_euro_bcv', rates.euro_bcv);
             }
         }
-        // 3. USDT Binance P2P (CriptoYa)
-        let resCripto = await fetch('https://criptoya.com/api/binancep2p/usdt/ves/1');
-        let dataCripto = await resCripto.json();
-        if(dataCripto && dataCripto.ask) {
-            let valUsdt = typeof dataCripto.ask === 'string' 
-                ? parseFloat(dataCripto.ask.replace(',', '.')) 
-                : dataCripto.ask;
+    } catch (e) {
+        console.error("Error conectando con BCV Today:", e);
+    }
 
-            if (!isNaN(valUsdt) && valUsdt > 0) {
-                rates.usdt = valUsdt;
+    // Mantenemos USDT de CriptoYa como respaldo para las criptomonedas
+    try {
+        const resCripto = await fetch('https://criptoya.com/api/binancep2p/usdt/ves/1');
+        if (resCripto.ok) {
+            const dataCripto = await resCripto.json();
+            if (dataCripto && dataCripto.ask) {
+                rates.usdt = parseFloat(dataCripto.ask);
                 localStorage.setItem('rate_usdt', rates.usdt);
             }
         }
     } catch(e) {
-        console.error("Error conectando con las APIs, usando respaldo local", e);
+        try {
+            const resAlt = await fetch('https://pydolarvenezuela-api.vercel.app/api/v1/dollar?page=crypto');
+            if (resAlt.ok) {
+                const dataAlt = await resAlt.json();
+                if (dataAlt?.monedas?.binance?.price) {
+                    rates.usdt = parseFloat(dataAlt.monedas.binance.price);
+                    localStorage.setItem('rate_usdt', rates.usdt);
+                }
+            }
+        } catch(err) {}
     }
-    updateRateDisplay();
+
+    updateRateUI();
+    updateDisplays();
+    
+    if (lastSeenBcv > 0 && rates.bcv_hoy !== lastSeenBcv) {
+        showRateChangeTooltip(rates.bcv_hoy, lastSeenBcv);
+    }
+    lastSeenBcv = rates.bcv_hoy;
 }
-
-        function updateRateDisplay() {
-            document.getElementById('modal-val-bcv').textContent = rates.bcv.toFixed(2) + ' Bs';
-            document.getElementById('modal-val-euro').textContent = rates.euro.toFixed(2) + ' Bs';
-            document.getElementById('modal-val-usdt').textContent = rates.usdt.toFixed(2) + ' Bs';
-
-            const names = { bcv: 'Dólar BCV Oficial', euro: 'Euro BCV Oficial', usdt: 'USDT Binance P2P' };
-            activeRateName.textContent = names[activeRateKey];
-            activeRateVal.textContent = rates[activeRateKey].toFixed(2) + ' Bs';
-            calculate();
-        }
 
         function setRateType(key) {
             activeRateKey = key;
