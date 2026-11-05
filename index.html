@@ -6,14 +6,12 @@
     <meta name="theme-color" content="#0d1117">
     <title>Monedita | Calculadora y Tasas Venezuela</title>
     
-    <!-- Meta y compatibilidad exclusiva para iOS / iPhone (Corregido para el icono) -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Monedita">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     <link rel="apple-touch-icon" href="android-chrome-192x192.png">
 
-    <!-- Vinculación del archivo manifest e icono principal -->
     <link rel="manifest" href="./manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="android-chrome-192x192.png">
 
@@ -81,7 +79,6 @@
             .app-container { border-radius: 32px; height: 92vh; max-height: 820px; border: 1px solid var(--border); }
         }
 
-        /* Header */
         .app-header {
             display: flex;
             justify-content: space-between;
@@ -336,7 +333,6 @@
         }
         .donate-btn:active { background: var(--border); }
 
-        /* Botón de instalación flotante */
         #install-pwa-btn {
             position: fixed;
             bottom: 20px;
@@ -423,10 +419,10 @@
         </div>
     </div>
 
-    <!-- Botón de instalación directo -->
+    <!-- Botón de instalación -->
     <button id="install-pwa-btn">📲 Instalar App</button>
 
-    <!-- Toast flotante para copiar -->
+    <!-- Toast flotante -->
     <div id="toast" class="toast">¡Copiado al portapapeles!</div>
 
     <!-- Modal de Selección de Tasas -->
@@ -470,7 +466,6 @@
                 <span>Teléfono: 04227134389</span><br>
                 <span>Cédula: 32.197.245</span>
             </div>
-            <!-- Botón de copia múltiple para Pago Móvil -->
             <button class="donate-btn" onclick="copyText('Banco: 0102 - Venezuela\nTeléfono: 04227134389\nCédula: 32.197.245', '¡Datos de Pago Móvil copiados!')">
                 📋 Copiar Datos de Pago Móvil
             </button>
@@ -491,9 +486,9 @@
         let isUsdToBs = true;
         let activeRateKey = 'bcv';
         let rates = { 
-            bcv: parseFloat(localStorage.getItem('rate_bcv')) || 500.0, 
-            euro: parseFloat(localStorage.getItem('rate_euro')) || 580.0, 
-            usdt: parseFloat(localStorage.getItem('rate_usdt')) || 510.0 
+            bcv: parseFloat(localStorage.getItem('rate_bcv')) || 0, 
+            euro: parseFloat(localStorage.getItem('rate_euro')) || 0, 
+            usdt: parseFloat(localStorage.getItem('rate_usdt')) || 0 
         };
 
         // Elementos DOM
@@ -513,7 +508,7 @@
         document.getElementById('btn-info').onclick = () => infoModal.classList.add('active');
         document.getElementById('close-info-modal').onclick = () => infoModal.classList.remove('active');
 
-        // --- LÓGICA DE APERTURA DIARIA (CADA 24 HORAS) ---
+        // LÓGICA DE APERTURA DIARIA
         function checkDailyDonationPrompt() {
             const lastShownTime = localStorage.getItem('last_donation_prompt');
             const now = new Date().getTime();
@@ -527,7 +522,7 @@
             }
         }
 
-        // Funciones de Copia Rápida
+        // Copia Rápida
         function copyMainAmount() {
             const val = outputMain.textContent.trim();
             if (val === '0') return;
@@ -571,69 +566,78 @@
             btnTheme.textContent = '☀️';
         }
 
-        // --- CARGAR TASAS REALES CON DOLARAPI (FUENTE OFICIAL BCV) ---
-     async function fetchRates() {
-    try {
-        // Consumimos la API oficial y gratuita de BCV Today
-        const res = await fetch("https://bcv.today/api/v1/rate.json", {
-            cache: "no-cache",
-        });
-        
-        if (res.ok) {
-            const data = await res.json();
-            
-            // Asignamos el Dólar BCV oficial de forma limpia
-            if (data && data.USD > 0) {
-                rates.bcv_hoy = parseFloat(data.USD);
-                localStorage.setItem('rate_bcv_hoy', rates.bcv_hoy);
-            }
-            
-            // Asignamos el Euro BCV oficial directamente sin errores de miles
-            if (data && data.EUR > 0) {
-                rates.euro_bcv = parseFloat(data.EUR);
-                localStorage.setItem('rate_euro_bcv', rates.euro_bcv);
-            }
-        }
-    } catch (e) {
-        console.error("Error conectando con BCV Today:", e);
-    }
-
-    // Mantenemos USDT de CriptoYa como respaldo para las criptomonedas
-    try {
-        const resCripto = await fetch('https://criptoya.com/api/binancep2p/usdt/ves/1');
-        if (resCripto.ok) {
-            const dataCripto = await resCripto.json();
-            if (dataCripto && dataCripto.ask) {
-                rates.usdt = parseFloat(dataCripto.ask);
-                localStorage.setItem('rate_usdt', rates.usdt);
-            }
-        }
-    } catch(e) {
-        try {
-            const resAlt = await fetch('https://pydolarvenezuela-api.vercel.app/api/v1/dollar?page=crypto');
-            if (resAlt.ok) {
-                const dataAlt = await resAlt.json();
-                if (dataAlt?.monedas?.binance?.price) {
-                    rates.usdt = parseFloat(dataAlt.monedas.binance.price);
-                    localStorage.setItem('rate_usdt', rates.usdt);
+        // CARGAR TASAS DESDE BCV TODAY Y CRIPTOYA
+        async function fetchRates() {
+            try {
+                const res = await fetch("https://bcv.today/api/v1/rate.json", {
+                    cache: "no-cache",
+                });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    
+                    if (data && data.USD > 0) {
+                        rates.bcv = parseFloat(data.USD);
+                        localStorage.setItem('rate_bcv', rates.bcv);
+                    }
+                    
+                    if (data && data.EUR > 0) {
+                        rates.euro = parseFloat(data.EUR);
+                        localStorage.setItem('rate_euro', rates.euro);
+                    }
                 }
+            } catch (e) {
+                console.error("Error conectando con BCV Today:", e);
             }
-        } catch(err) {}
-    }
 
-    updateRateUI();
-    updateDisplays();
-    
-    if (lastSeenBcv > 0 && rates.bcv_hoy !== lastSeenBcv) {
-        showRateChangeTooltip(rates.bcv_hoy, lastSeenBcv);
-    }
-    lastSeenBcv = rates.bcv_hoy;
-}
+            try {
+                const resCripto = await fetch('https://criptoya.com/api/binancep2p/usdt/ves/1');
+                if (resCripto.ok) {
+                    const dataCripto = await resCripto.json();
+                    if (dataCripto && dataCripto.ask) {
+                        rates.usdt = parseFloat(dataCripto.ask);
+                        localStorage.setItem('rate_usdt', rates.usdt);
+                    }
+                }
+            } catch(e) {
+                try {
+                    const resAlt = await fetch('https://pydolarvenezuela-api.vercel.app/api/v1/dollar?page=crypto');
+                    if (resAlt.ok) {
+                        const dataAlt = await resAlt.json();
+                        if (dataAlt?.monedas?.binance?.price) {
+                            rates.usdt = parseFloat(dataAlt.monedas.binance.price);
+                            localStorage.setItem('rate_usdt', rates.usdt);
+                        }
+                    }
+                } catch(err) {}
+            }
+
+            updateRateDisplay();
+            calculate();
+        }
+
+        function updateRateDisplay() {
+            const names = {
+                bcv: 'Dólar BCV Oficial',
+                euro: 'Euro BCV Oficial',
+                usdt: 'USDT (Binance P2P)'
+            };
+
+            activeRateName.textContent = names[activeRateKey] || 'Dólar BCV Oficial';
+            
+            const currentVal = rates[activeRateKey];
+            activeRateVal.textContent = currentVal > 0 ? `${currentVal.toFixed(2)} Bs` : 'Sin conexión';
+
+            document.getElementById('modal-val-bcv').textContent = rates.bcv > 0 ? `${rates.bcv.toFixed(2)} Bs` : '...';
+            document.getElementById('modal-val-euro').textContent = rates.euro > 0 ? `${rates.euro.toFixed(2)} Bs` : '...';
+            document.getElementById('modal-val-usdt').textContent = rates.usdt > 0 ? `${rates.usdt.toFixed(2)} Bs` : '...';
+        }
 
         function setRateType(key) {
             activeRateKey = key;
             rateModal.classList.remove('active');
             updateRateDisplay();
+            calculate();
         }
 
         function switchMode() {
@@ -664,7 +668,7 @@
                 baseVal = eval(expression || '0') || 0;
             } catch(e) { baseVal = 0; }
 
-            let currentRate = rates[activeRateKey];
+            let currentRate = rates[activeRateKey] || 0;
 
             if (isUsdToBs) {
                 symbolMain.textContent = activeRateKey === 'euro' ? '€' : '$';
@@ -680,7 +684,7 @@
             }
         }
 
-        // --- REGISTRO DEL SERVICE WORKER OBLIGATORIO ---
+        // Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
@@ -689,7 +693,7 @@
             });
         }
 
-        // --- LÓGICA DE INSTALACIÓN DIRECTA ---
+        // Instalación PWA
         let deferredPrompt;
         const installBtn = document.getElementById('install-pwa-btn');
 
@@ -703,20 +707,18 @@
             if (!deferredPrompt) return;
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
-            console.log(`Respuesta de instalación: ${outcome}`);
             if (outcome === 'accepted') {
                 installBtn.style.display = 'none';
             }
             deferredPrompt = null;
         });
 
-        window.addEventListener('appinstalled', (evt) => {
-            console.log('Monedita instalada con éxito');
+        window.addEventListener('appinstalled', () => {
             installBtn.style.display = 'none';
         });
 
-        // Ejecutar al iniciar
-        fetchLiveRates();
+        // Inicialización
+        fetchRates();
         checkDailyDonationPrompt();
     </script>
 </body>
