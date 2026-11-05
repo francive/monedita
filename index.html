@@ -606,15 +606,6 @@
                 }
             }
         }
-
-        // RESPALDO INTELIGENTE DEL EURO: Si la API falló o mandó un valor menor a 10, 
-        // calculamos el euro oficial estimándolo con base en el dólar BCV actual para que NUNCA marque 1 Bs.
-        if (!euroValido && rates.bcv) {
-            // El euro suele cotizar un poco por encima del dólar en el mercado oficial
-            rates.euro = rates.bcv * 1.08; // Factor de proporción estándar oficial
-            localStorage.setItem('rate_euro', rates.euro);
-        }
-
         // 3. USDT Binance P2P (CriptoYa)
         let resCripto = await fetch('https://criptoya.com/api/binancep2p/usdt/ves/1');
         let dataCripto = await resCripto.json();
