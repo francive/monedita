@@ -603,13 +603,6 @@
                 let valEuro = typeof bcvEuro.promedio === 'string' 
                     ? parseFloat(bcvEuro.promedio.replace(',', '.')) 
                     : bcvEuro.promedio;
-
-                // VALIDACIÓN CLAVE: Si la API devuelve un valor menor a 10 (como 1.006 erróneo),
-                // lo consideramos inválido para evitar mostrar "1 bolívar".
-                if (!isNaN(valEuro) && valEuro > 10) {
-                    rates.euro = valEuro;
-                    localStorage.setItem('rate_euro', rates.euro);
-                    euroValido = true;
                 }
             }
         }
