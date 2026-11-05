@@ -226,7 +226,6 @@
             flex-grow: 1;
         }
 
-        /* EFECTO MINI BOOM EN BOTONES */
         .k-btn {
             background: var(--key-bg);
             border: 1px solid var(--border);
@@ -306,6 +305,50 @@
         }
         .rate-option-item:active { transform: scale(0.96); }
         .rate-option-item.active { border-color: var(--accent); background: var(--accent-glow); }
+
+        /* ESTILO PARA TASA PERSONALIZADA EN MODAL */
+        .custom-rate-container {
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            padding: 12px 14px;
+            border-radius: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: border-color 0.2s;
+        }
+        .custom-rate-container.active {
+            border-color: var(--accent);
+            background: var(--accent-glow);
+        }
+        .custom-rate-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .custom-rate-input-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 4px;
+        }
+        .custom-rate-input-box input {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            width: 100%;
+            outline: none;
+        }
+        .custom-rate-input-box input:focus {
+            border-color: var(--accent);
+        }
 
         .toast {
             position: fixed;
@@ -443,17 +486,28 @@
                 <button class="close-modal" id="close-rate-modal">✕</button>
             </div>
             <div style="display: flex; flex-direction: column; gap: 10px;">
-                <div class="rate-option-item" onclick="setRateType('bcv')">
-                    <span>🇺🇪 Dólar BCV Oficial</span>
+                <div class="rate-option-item" id="opt-bcv" onclick="setRateType('bcv')">
+                    <span>🇻🇪 Dólar BCV Oficial</span>
                     <span id="modal-val-bcv">...</span>
                 </div>
-                <div class="rate-option-item" onclick="setRateType('euro')">
+                <div class="rate-option-item" id="opt-euro" onclick="setRateType('euro')">
                     <span>🇪🇺 Euro BCV Oficial</span>
                     <span id="modal-val-euro">...</span>
                 </div>
-                <div class="rate-option-item" onclick="setRateType('usdt')">
+                <div class="rate-option-item" id="opt-usdt" onclick="setRateType('usdt')">
                     <span>💎 USDT (Binance P2P)</span>
                     <span id="modal-val-usdt">...</span>
+                </div>
+
+                <!-- NUEVA OPCIÓN: Tasa Personalizada -->
+                <div class="custom-rate-container" id="opt-custom">
+                    <div class="custom-rate-header" onclick="setRateType('custom')">
+                        <span>✏️ Tasa Personalizada</span>
+                        <span id="modal-val-custom">0,00 Bs</span>
+                    </div>
+                    <div class="custom-rate-input-box">
+                        <input type="number" id="input-custom-rate" placeholder="Ingresa tasa (ej: 950.50)" step="any" oninput="updateCustomRate(this.value)">
+                    </div>
                 </div>
             </div>
         </div>
@@ -494,11 +548,12 @@
         // Variables de Estado
         let expression = "";
         let isUsdToBs = true;
-        let activeRateKey = 'bcv';
+        let activeRateKey = localStorage.getItem('active_rate_key') || 'bcv';
         let rates = { 
             bcv: parseFloat(localStorage.getItem('rate_bcv')) || 0, 
             euro: parseFloat(localStorage.getItem('rate_euro')) || 0, 
-            usdt: parseFloat(localStorage.getItem('rate_usdt')) || 0 
+            usdt: parseFloat(localStorage.getItem('rate_usdt')) || 0,
+            custom: parseFloat(localStorage.getItem('rate_custom')) || 0
         };
 
         // Elementos DOM
@@ -518,25 +573,34 @@
         document.getElementById('btn-info').onclick = () => infoModal.classList.add('active');
         document.getElementById('close-info-modal').onclick = () => infoModal.classList.remove('active');
 
-        // Feedback Táctil / Háptico para el Mini Boom
+        // Feedback Táctil / Háptico
         function triggerHaptic() {
             if (navigator.vibrate) {
                 try { navigator.vibrate(12); } catch(e) {}
             }
         }
 
-        // LÓGICA DE APERTURA DIARIA
-        function checkDailyDonationPrompt() {
+        // LÓGICA DE APERTURA SEMANAL (Cada 7 días / 168 horas)
+        function checkWeeklyDonationPrompt() {
             const lastShownTime = localStorage.getItem('last_donation_prompt');
             const now = new Date().getTime();
-            const twentyFourHours = 24 * 60 * 60 * 1000;
+            const sevenDays = 7 * 24 * 60 * 60 * 1000; // 7 días en milisegundos
 
-            if (!lastShownTime || (now - parseInt(lastShownTime)) > twentyFourHours) {
+            if (!lastShownTime || (now - parseInt(lastShownTime)) > sevenDays) {
                 setTimeout(() => {
                     infoModal.classList.add('active');
-                }, 600);
+                }, 700);
                 localStorage.setItem('last_donation_prompt', now.toString());
             }
+        }
+
+        // Actualización y Persistencia de Tasa Personalizada
+        function updateCustomRate(val) {
+            const num = parseFloat(val) || 0;
+            rates.custom = num;
+            localStorage.setItem('rate_custom', num);
+            updateRateDisplay();
+            calculate();
         }
 
         // Copia Rápida
@@ -584,21 +648,16 @@
             btnTheme.textContent = '☀️';
         }
 
-        // CARGAR TASAS DESDE BCV TODAY Y CRIPTOYA
+        // CARGAR TASAS DESDE API BCV Y BINANCE P2P
         async function fetchRates() {
             try {
-                const res = await fetch("https://bcv.today/api/v1/rate.json", {
-                    cache: "no-cache",
-                });
-                
+                const res = await fetch("https://bcv.today/api/v1/rate.json", { cache: "no-cache" });
                 if (res.ok) {
                     const data = await res.json();
-                    
                     if (data && data.USD > 0) {
                         rates.bcv = parseFloat(data.USD);
                         localStorage.setItem('rate_bcv', rates.bcv);
                     }
-                    
                     if (data && data.EUR > 0) {
                         rates.euro = parseFloat(data.EUR);
                         localStorage.setItem('rate_euro', rates.euro);
@@ -638,23 +697,35 @@
             const names = {
                 bcv: 'Dólar BCV Oficial',
                 euro: 'Euro BCV Oficial',
-                usdt: 'USDT (Binance P2P)'
+                usdt: 'USDT (Binance P2P)',
+                custom: 'Tasa Personalizada'
             };
 
             activeRateName.textContent = names[activeRateKey] || 'Dólar BCV Oficial';
             
             const currentVal = rates[activeRateKey];
-            activeRateVal.textContent = currentVal > 0 ? `${currentVal.toFixed(2)} Bs` : 'Sin conexión';
+            activeRateVal.textContent = currentVal > 0 ? `${currentVal.toFixed(2)} Bs` : (activeRateKey === 'custom' ? 'Ingresar valor' : 'Sin conexión');
 
+            // Actualizar modal
             document.getElementById('modal-val-bcv').textContent = rates.bcv > 0 ? `${rates.bcv.toFixed(2)} Bs` : '...';
             document.getElementById('modal-val-euro').textContent = rates.euro > 0 ? `${rates.euro.toFixed(2)} Bs` : '...';
             document.getElementById('modal-val-usdt').textContent = rates.usdt > 0 ? `${rates.usdt.toFixed(2)} Bs` : '...';
+            document.getElementById('modal-val-custom').textContent = rates.custom > 0 ? `${rates.custom.toFixed(2)} Bs` : '0,00 Bs';
+
+            // Resaltar opción activa
+            document.querySelectorAll('.rate-option-item, .custom-rate-container').forEach(el => el.classList.remove('active'));
+            const activeEl = document.getElementById(`opt-${activeRateKey}`);
+            if (activeEl) activeEl.classList.add('active');
         }
 
         function setRateType(key) {
             triggerHaptic();
             activeRateKey = key;
-            rateModal.classList.remove('active');
+            localStorage.setItem('active_rate_key', key);
+            
+            if (key !== 'custom') {
+                rateModal.classList.remove('active');
+            }
             updateRateDisplay();
             calculate();
         }
@@ -671,14 +742,12 @@
 
             if (expression === "" && isOp) return;
 
-            // Si se presiona un operador sobre otro operador, reemplazamos el último operador
             if (isOp && /[+\-*/]/.test(lastChar)) {
                 expression = expression.slice(0, -1) + char;
                 calculate();
                 return;
             }
 
-            // Prevenir doble punto en el mismo bloque numérico
             if (char === '.') {
                 const parts = expression.split(/[+\-*/]/);
                 const currentNum = parts[parts.length - 1];
@@ -702,9 +771,8 @@
             calculate();
         }
 
-        // CÁLCULO MEJORADO (CONSERVA EL SUBTOTAL ACUMULADO)
+        // CÁLCULO MEJORADO
         function calculate() {
-            // Formatear expresión para visualización limpia (+, -, ×, ÷)
             let formattedExpr = expression
                 .replace(/\*/g, ' × ')
                 .replace(/\//g, ' ÷ ')
@@ -715,18 +783,12 @@
 
             let baseVal = 0;
             
-            // Evaluar expresión completa o de subtotal hasta el último operador válido
             if (expression) {
                 let evalTarget = expression;
-
-                // Si termina en un operador (+, -, *, /), evaluamos todo lo anterior para NO ponerlo en 0
                 if (/[+\-*/]$/.test(expression)) {
                     evalTarget = expression.slice(0, -1);
                 }
-
-                // Evaluar subtotal numérico
                 try {
-                    // Evaluar multiplicaciones y divisiones prioritarias de forma segura
                     evalTarget = evalTarget.replace(/[+\-*/.]+$/, '');
                     if (evalTarget) {
                         baseVal = Function('"use strict"; return (' + evalTarget + ')')() || 0;
@@ -752,12 +814,17 @@
             }
         }
 
+        // Cargar valor guardado del input personalizado
+        if (rates.custom > 0) {
+            document.getElementById('input-custom-rate').value = rates.custom;
+        }
+
         // Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('Service Worker registrado con éxito', reg))
-                    .catch(err => console.error('Error al registrar el Service Worker', err));
+                    .then(reg => console.log('Service Worker registrado', reg))
+                    .catch(err => console.error('Error SW', err));
             });
         }
 
@@ -788,7 +855,7 @@
 
         // Inicialización
         fetchRates();
-        checkDailyDonationPrompt();
+        checkWeeklyDonationPrompt();
     </script>
 </body>
 </html>
